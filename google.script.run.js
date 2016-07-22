@@ -5,17 +5,27 @@
 var google = {
 	script: {
 		run: {
+			// PLACE HERE your function called from Sidebar/Modale to keep the link
 			
+			
+			// HANDLERs
+			/**
+			 * @param {function} onSuccess
+			 * @return {google.script.run}
+			 */
+			withSuccessHandler: function (onSuccess) {},
+			/**
+			 * @param {function} onFailure
+			 * @return {google.script.run}
+			 */
+			withFailureHandler: function (onFailure) {}
 		}
 	}
 };
 
-/**
- * @param {function} callBack
- */
-google.script.run.withSuccessHandler = function (callBack) {};
+// Just for usage detection
+google.script.run.withSuccessHandler(function () {});
+google.script.run.withFailureHandler(function () {});
 
-/**
- * @param {function} callBack
- */
-google.script.run.withFailureHandler = function (callBack) {};
+/** uncomment if project used for an addon */
+// onInstall();
