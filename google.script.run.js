@@ -4,28 +4,32 @@
 
 var google = {
 	script: {
-		run: {
-			// PLACE HERE your function called from Sidebar/Modale to keep the link
-			
-			
-			// HANDLERs
-			/**
-			 * @param {function} onSuccess
-			 * @return {google.script.run}
-			 */
-			withSuccessHandler: function (onSuccess) {},
-			/**
-			 * @param {function} onFailure
-			 * @return {google.script.run}
-			 */
-			withFailureHandler: function (onFailure) {}
-		}
+		run: function () {}
 	}
 };
 
-// Just for usage detection
-google.script.run.withSuccessHandler(function () {});
-google.script.run.withFailureHandler(function () {});
+// NEVER DO THAT in normal code
+// this overwrite the prototype, here we do this of auto-completion only
+google.script.run.prototype = {
+	// PLACE HERE your function called from Sidebar/Modale to keep the link
+	
+};
+
+
+
+/**
+ * @param {function} successHandler
+ * @return {google.script.run}
+ */
+google.script.run.withSuccessHandler = function (successHandler) {};
+/**
+ * @param {function} failureHandler
+ * @return {google.script.run}
+ */
+google.script.run.withFailureHandler = function (failureHandler) {};
+
+google.script.run.prototype.withSuccessHandler = google.script.run.withSuccessHandler;
+google.script.run.prototype.withFailureHandler = google.script.run.withFailureHandler;
 
 /** uncomment if project used for an addon */
 // onInstall();

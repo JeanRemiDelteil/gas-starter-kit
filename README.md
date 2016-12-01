@@ -22,13 +22,14 @@ npm install -g node-google-apps-script
 
 * Deployment instructions DEV
 
-1. Renaming and copy files: Execute '*grunt*' inside the main working directory
-2. Upload files on drive: Go into 'built' directory (which contains the gapps.config.json file) and launch “*gapps upload*”
+1. Renaming and copy files: Execute ``grunt`` inside the main working directory
+2. Upload files on drive: Go into 'built' directory (which contains the gapps.config.json file) and launch ``gapps upload``
+3. If the /built doesn't contain the json file, you can run `gapps init xxx-your-script-id` to fetch the script and create the json file
 
 * Deployment instructions PROD
 
-1. Renaming and copy files: Execute '*grunt prod*' inside the main working directory
-2. Upload files on drive: use the command '*gapps upload*' from the /built folder
+1. Renaming and copy files: Execute ``grunt prod`` inside the main working directory
+2. Upload files on drive: use the command ``gapps upload`` from the /built folder
 
 * Test instructions
 
