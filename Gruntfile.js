@@ -39,12 +39,6 @@ module.exports = function(grunt) {
 				]
 			}
 		},
-		concat: {
-			'js': {
-				src: 'src/*.js',
-				dest: 'built/src/Code.js'
-			}
-		},
 		copy:{
 			'all': {
 				files: [
@@ -121,7 +115,6 @@ module.exports = function(grunt) {
 	// load tasks
 	grunt.loadNpmTasks('grunt-contrib-clean');
 	grunt.loadNpmTasks('grunt-contrib-copy');
-	grunt.loadNpmTasks('grunt-contrib-concat');
 	grunt.loadNpmTasks('grunt-remove-logging'); // https://www.npmjs.com/package/grunt-remove-logging
 	
 	// custom task to change *.json
@@ -167,13 +160,6 @@ module.exports = function(grunt) {
 		'config:prod',
 		'clean:all',
 		'copy:all',
-		'removelogging:prod'
-	]);
-	grunt.registerTask('prod-concat', [
-		'config:prod',
-		'clean:all',
-		'concat:js',
-		'copy:html',
 		'removelogging:prod'
 	]);
 	
