@@ -141,5 +141,4 @@ Using the command to publish as an addon will **FORBID** further manual publishi
 
 ## Who do I talk to? ###
 
-* jean-remi.delteil@revevol.eu
-* romain.vialard@revevol.eu
+* jeanremi.delteil@gmail.com
