@@ -5,36 +5,47 @@
  */
 
 
-var google = {
-	script: {
-		run: function () {}
-	}
-};
+//<editor-fold desc="# Stubs for google.script.run">
 
-// NEVER DO THAT in normal code
-// this overwrite the prototype, here we do this of auto-completion only
-google.script.run.prototype = {
+GoogleScriptRun = function () {};
+// NEVER DO THAT in normal code, this overwrite the prototype, here we do this of auto-completion only
+GoogleScriptRun.prototype = {
 	// PLACE HERE your function called from Sidebar/Modale to keep the link
 	// onInstall: onInstall,
-	// onOpen: onOpen,
+	onOpen: onOpen,
 	
 };
 
 
+//<editor-fold desc="# Internal stubs for google.script.run">
+
 /**
  * @param {function} successHandler
- * @return {google.script.run}
+ * @return {GoogleScriptRun}
  */
-google.script.run.withSuccessHandler = function (successHandler) {};
+GoogleScriptRun.prototype.withSuccessHandler = function (successHandler) {
+	successHandler();
+	return this;
+};
 /**
  * @param {function} failureHandler
- * @return {google.script.run}
+ * @return {GoogleScriptRun}
  */
-google.script.run.withFailureHandler = function (failureHandler) {};
+GoogleScriptRun.prototype.withFailureHandler = function (failureHandler) {
+	failureHandler();
+	return this;
+};
 
-google.script.run.prototype.withSuccessHandler = google.script.run.withSuccessHandler;
-google.script.run.prototype.withFailureHandler = google.script.run.withFailureHandler;
+// noinspection ES6ConvertVarToLetConst
+var google = {
+	script: {
+		run: new GoogleScriptRun()
+	}
+};
 
+//</editor-fold>
+
+//</editor-fold>
 
 
 //<editor-fold desc="# Stubs for Google API">
