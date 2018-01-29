@@ -155,7 +155,7 @@ module.exports = function(grunt) {
 		}
 		
 		// write updated config
-		let configStr = JSON.stringify(config);
+		let configStr = JSON.stringify(config, null, 2);
 		grunt.file.write(configFileTarget, configStr);
 		
 	});
