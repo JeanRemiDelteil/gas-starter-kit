@@ -24,7 +24,7 @@ Find the setup for clasp on this page: https://www.npmjs.com/package/@google/cla
 1. Renaming and copy files: Execute ``grunt build --target=$CONFiG_NAME$`` inside the main working directory ($CONFiG_NAME$ = dev, prod, whatever name you choose: it will use the config file named "/build/config/$CONFiG_NAME$_config.json")
 2. Update the script: Execute ``grunt push --target=dev``
 3. Both can be executed with: ``grunt build_push --target=dev``
-4. To publish an addon (JUST FOR TEST): ``grunt build_publish --target=testAddon``
+4. To publish an addon ([JUST FOR TEST](#warning)): ``grunt build_publish --target=testAddon``
 
 #### Changing target (DEV, PROD, testAddon for example)
 
@@ -126,7 +126,7 @@ The refresh_token usualy starts by "1/" and is obtained by exchanging the auth c
 
 Git branches:
 
-* master: merge Pull resquests on master
+* master: merge Pull requests on master
 
 * Set **tags** with increasing version on master's commit that are pushed in production (v1, v2, ...)
 
@@ -138,6 +138,8 @@ git merge --no-ff branchToMergeHere
 ## WARNING ###
 
 Using the command to publish as an addon will **FORBID** further manual publishing with the GAS interface.
+
+You can star the issue on Google issue tracker here: https://issuetracker.google.com/issues/36765132
 
 ## Who do I talk to? ###
 
