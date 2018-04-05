@@ -33,13 +33,24 @@ module.exports = function(grunt) {
 	 *   }
 	 * }}
 	 */
-	const CONFIG = grunt.file.readJSON(`./build/config/${TARGET}_config.json`);
+	let CONFIG;
 	
+	//<editor-fold desc="# Prepare CONFIG object">
+	{
+		try {
+			CONFIG = require(`./build/config/${TARGET}_config.json`);
+		}
+		catch (e) {
+			grunt.fail.fatal(`\x1b[31mERROR: "\x1b[0m\x1b[41m\x1b[30m${TARGET}\x1b[31m\x1b[0m\x1b[31m" is not a valid target build\x1b[0m`);
+			
+			// not needed, grunt.fail.fatal already exits
+			return false;
+		}
+	}
+	//</editor-fold>
 	
 	// init config object
 	grunt.initConfig({
-		// get JSON config object
-		// pkg: grunt.file.readJSON('package.json'),
 		
 		// task
 		clean: {
@@ -47,9 +58,9 @@ module.exports = function(grunt) {
 				files: [
 					{
 						expand: true,
-						cwd: 'build/src/', // build src folder
+						cwd: 'build/src/', // build source folder
 						src: [
-							'*'
+							'**/*' // Wipe everything
 						]
 					}
 				]
@@ -57,67 +68,118 @@ module.exports = function(grunt) {
 		},
 		copy:{
 			'build': {
-				files: [
-					{
-						expand: true,
-						cwd: 'src/',
-						src: '**/*.gs.js',
-						dest: 'build/src/',
-						flatten: true,
-						filter: 'isFile',
-						rename: function (dest, src) {
-							return dest + src.replace(/\.gs\.js$/, '.gs');
-						}
-					},
-					{
-						expand: true,
-						cwd: 'src/',
-						src: '**/*.js',
-						dest: 'build/src/',
-						flatten: true,
-						filter: 'isFile',
-						rename: function (dest, src) {
-							return dest + src.replace(/\.js$/, '.gs');
-						}
-					},
-					{
-						expand: true,
-						cwd: 'src/',
-						src: ['**/*.html', '**/*.json', '**/*.gs'],
-						dest: 'build/src/',
-						flatten: true,
-						filter: 'isFile'
-					}]
+				files: [{
+					expand: true,
+					cwd: 'src/',
+					src: [
+						'**/*.gs',
+						'**/*.js',
+						'**/*.html',
+						'appsscript.json',
+					],
+					dest: 'build/src/',
+					flatten: false, // set flatten to false once we use clasp folder name
+					filter: 'isFile',
+					'rename': (dest, src) => dest + src.replace(/\.gs\.js$/, '.js'),
+				}]
+			},
+			'dependencies': {
+				get files(){
+					if (this._cachedFiles) return this._cachedFiles;
+					
+					// custom task to copy the package dependencies to build output
+					let files = [];
+					let {dependencies} = require('./package');
+					
+					// Allows access to saved packages information
+					this.options.process = this.options.process.bind(this.options);
+					
+					// for every dependency package, build src and dest rules
+					for (let pkgName in dependencies){
+						// retrieve installed package version
+						let {version} = require(`./node_modules/${pkgName}/package`);
+						
+						// save package info
+						this.options._pkg[pkgName] = {
+							name: pkgName,
+							version: version,
+						};
+						
+						files.push({
+							expand: true,
+							cwd: `node_modules/${pkgName}/src/`,
+							src: [
+								'**/*.gs',
+								'**/*.js',
+							],
+							dest: `build/src/lib/${pkgName}/`,
+							flatten: false, // set flatten to false once we use clasp folder name
+							filter: 'isFile',
+							'rename': (dest, src) => dest + src.replace(/\.gs\.js$/, '.js'),
+						});
+					}
+					
+					// Save files to only process them once (they should not change in between calls)
+					this._cachedFiles = files;
+					
+					return files;
+				},
+				
+				options: {
+					_pkg: {},
+					
+					/**
+					 * Add header with library information
+					 *
+					 * @param {string} content
+					 * @param {string} srcPath
+					 */
+					process: function (content, srcPath) {
+						// find pkg
+						let [/*res*/, pkg] = /^node_modules\/(.+?)\/src\//.exec(srcPath) || [];
+						if (!pkg) return content;
+						
+						let {name, version} = this._pkg[pkg];
+						
+						let header = `/**
+ * package: ${name}
+ * version: ${version}
+ */`;
+						
+						return `${header}\n\n${content}`;
+					}
+				}
+				
 			}
 		},
-    jsonPatch: {
-      'build': {
-        srcFolder: 'build/src/',
-        destFolder: 'build/src/',
-    
-        files: [
-          {
-            src: '.clasp.json',
-            dest: '.clasp.json',
-            data: CONFIG.clasp,
-          },
-          {
-            src: 'appsscript.json',
-            dest: 'appsscript.json',
-            data: CONFIG.script_manifest || {},
-          },
-        ],
-      },
+		jsonPatch: {
+			'build': {
+				srcFolder: 'build/src/',
+				destFolder: 'build/src/',
+				
+				files: [
+					{
+						src: '.clasp.json',
+						dest: '.clasp.json',
+						data: CONFIG.clasp,
+					},
+					{
+						src: 'appsscript.json',
+						dest: 'appsscript.json',
+						data: CONFIG.script_manifest || {},
+					},
+				],
+			},
 		},
 		clasp: {
-      'push': {
-        runDir: 'build/src',
-        command: 'push',
-      },
-      'version': {
-        runDir: 'build/src',
-        command: 'version',
-      },
+			'push': {
+				runDir: 'build/src',
+				command: 'push',
+			},
+			'version': {
+				runDir: 'build/src',
+				command: 'version',
+			},
 		},
 		zip: {
 			manifest: {}
@@ -137,146 +199,146 @@ module.exports = function(grunt) {
 	// load tasks
 	grunt.loadNpmTasks('grunt-contrib-clean');
 	grunt.loadNpmTasks('grunt-contrib-copy');
-  
-  /**
-   * custom task to patch *.json or multiple *.json
-   */
-  grunt.registerMultiTask('jsonPatch', 'Update properties in *.json file or multiple json files', function(){
-    
-    // Check if there are files to patch
-    if (!this || !this.data || (!this.files && (!this.data.src || !this.data.dest))) return;
-    
-    let srcFolder = this.data['srcFolder'] || '';
-    let destFolder = this.data['destFolder'] || '';
-    
-    /**
-     * Load a <src> JSON file, patch it with <data>, save it to <target>
-     *
-     * @param {string} src
-     * @param {string} target
-     * @param {Object} data
-     */
-    function updateJsonFile(src, target, data) {
-      
-      let config = {};
-      
-      // read config file
-      try { config = grunt.file.readJSON(srcFolder + src) }
-      catch (e) {}
-      
-      // update the provided parameters
-      for (let key in data) {
-        let path = key.split('/'),
-          configDrillDown = config;
-        
-        for (let i = 0; i < path.length - 1; i++) {
-          // in case the path doesn't exist, create it. ONLY create object
-          if (configDrillDown[path[i]] === undefined) {
-            
-            // Add array element at the end
-            if (Array.isArray(configDrillDown) && path[i] === '-1') {
-              path[i] = configDrillDown.push({}) - 1;
-            }
-            // Create Array of (-1) is used and object is empty (newly created)
-            else if (Object.keys(configDrillDown).length === 0 && path[i] === '-1') {
-              configDrillDown = [{}];
-              path[i] = 0;
-            }
-            else {
-              configDrillDown[path[i]] = {};
-            }
-          }
-          
-          configDrillDown = configDrillDown[path[i]];
-        }
-        
-        let i = path.length - 1;
-        if (configDrillDown[path[i]] === undefined) {
-          
-          // Add array element at the end
-          if (Array.isArray(configDrillDown) && path[i] === '-1') {
-            path[i] = configDrillDown.push({}) - 1;
-          }
-          // Create Array of (-1) is used and object is empty (newly created)
-          else if (Object.keys(configDrillDown).length === 0 && path[i] === '-1') {
-            configDrillDown = [{}];
-            path[i] = 0;
-          }
-        }
-        
-        configDrillDown[path[i]] = data[key];
-      }
-      
-      // write updated config
-      grunt.file.write(destFolder + target, JSON.stringify(config, null, '\t'));
-    }
-    
-    // Init files object
-    let files = this.data.files || [{
-      src: this.files[0].src[0],
-      dest: this.files[0].dest,
-      data: this.data.data
-    }];
-    
-    // Patch every JSON files
-    files.forEach(({src, dest, data}) => updateJsonFile(src, dest, data));
-  });
-  
-  /**
-   * Use clasp
-   */
-  grunt.registerMultiTask('clasp', 'push content in script, and create a version', function(){
-    const child_process = require('child_process');
-    
-    /**
-     * @type {{
+	
+	/**
+	 * custom task to patch *.json or multiple *.json
+	 */
+	grunt.registerMultiTask('jsonPatch', 'Update properties in *.json file or multiple json files', function(){
+		
+		// Check if there are files to patch
+		if (!this || !this.data || (!this.files && (!this.data.src || !this.data.dest))) return;
+		
+		let srcFolder = this.data['srcFolder'] || '';
+		let destFolder = this.data['destFolder'] || '';
+		
+		/**
+		 * Load a <src> JSON file, patch it with <data>, save it to <target>
+		 *
+		 * @param {string} src
+		 * @param {string} target
+		 * @param {Object} data
+		 */
+		function updateJsonFile(src, target, data) {
+			
+			let config = {};
+			
+			// read config file
+			try { config = grunt.file.readJSON(srcFolder + src) }
+			catch (e) {}
+			
+			// update the provided parameters
+			for (let key in data) {
+				let path = key.split('/'),
+					configDrillDown = config;
+				
+				for (let i = 0; i < path.length - 1; i++) {
+					// in case the path doesn't exist, create it. ONLY create object
+					if (configDrillDown[path[i]] === undefined) {
+						
+						// Add array element at the end
+						if (Array.isArray(configDrillDown) && path[i] === '-1') {
+							path[i] = configDrillDown.push({}) - 1;
+						}
+						// Create Array of (-1) is used and object is empty (newly created)
+						else if (Object.keys(configDrillDown).length === 0 && path[i] === '-1') {
+							configDrillDown = [{}];
+							path[i] = 0;
+						}
+						else {
+							configDrillDown[path[i]] = {};
+						}
+					}
+					
+					configDrillDown = configDrillDown[path[i]];
+				}
+				
+				let i = path.length - 1;
+				if (configDrillDown[path[i]] === undefined) {
+					
+					// Add array element at the end
+					if (Array.isArray(configDrillDown) && path[i] === '-1') {
+						path[i] = configDrillDown.push({}) - 1;
+					}
+					// Create Array of (-1) is used and object is empty (newly created)
+					else if (Object.keys(configDrillDown).length === 0 && path[i] === '-1') {
+						configDrillDown = [{}];
+						path[i] = 0;
+					}
+				}
+				
+				configDrillDown[path[i]] = data[key];
+			}
+			
+			// write updated config
+			grunt.file.write(destFolder + target, JSON.stringify(config, null, '\t'));
+		}
+		
+		// Init files object
+		let files = this.data.files || [{
+			src: this.files[0].src[0],
+			dest: this.files[0].dest,
+			data: this.data.data
+		}];
+		
+		// Patch every JSON files
+		files.forEach(({src, dest, data}) => updateJsonFile(src, dest, data));
+	});
+	
+	/**
+	 * Use clasp
+	 */
+	grunt.registerMultiTask('clasp', 'push content in script, and create a version', function(){
+		const child_process = require('child_process');
+		
+		/**
+		 * @type {{
 		 *   command: string,
 		 *   runDir: string
 		 * }}
-     */
-    let param = this.data;
-    
-    function clasp(cmd){
-      let res = child_process.execSync(`clasp ${cmd}`, {
-        cwd: __dirname +'/'+ param.runDir
-      });
-      
-      // Get string res
-      return res.toString();
-    }
-    
-    switch (param.command){
-      case 'push':
-        // Push
-        console.log('Pushing files to the script');
-        let pushRes = clasp('push');
-        
-        // Check result
-        let resPush = /Pushed\s(\d+)\sfiles\./.exec(pushRes);
-        if (!resPush) throw 'Error while pushing files to AppsScript';
-        console.log(`Pushed files: ${resPush[1]}`);
-        
-        break;
-      
-      case 'version':
-        // create a new version
-        console.log('Creating new script version');
-        let versionRes = clasp('version');
-        
-        // Check result and get version num
-        let resVers = /version\s(\d+)/.exec(versionRes);
-        if (!resVers) throw 'Error while creating new version';
-        
-        let versionNum = +resVers[1];
-        console.log('New version num: ' + versionNum);
-        
-        // Update version value:
-        !CONFIG.publishing && (CONFIG.publishing = {});
-        CONFIG.publishing.version = versionNum;
-        
-        break;
-    }
-  });
+		 */
+		let param = this.data;
+		
+		function clasp(cmd){
+			let res = child_process.execSync(`clasp ${cmd}`, {
+				cwd: __dirname +'/'+ param.runDir
+			});
+			
+			// Get string res
+			return res.toString();
+		}
+		
+		switch (param.command){
+			case 'push':
+				// Push
+				console.log('Pushing files to the script');
+				let pushRes = clasp('push');
+				
+				// Check result
+				let resPush = /Pushed\s(\d+)\sfiles\./.exec(pushRes);
+				if (!resPush) throw 'Error while pushing files to AppsScript';
+				console.log(`Pushed files: ${resPush[1]}`);
+				
+				break;
+			
+			case 'version':
+				// create a new version
+				console.log('Creating new script version');
+				let versionRes = clasp('version');
+				
+				// Check result and get version num
+				let resVers = /version\s(\d+)/.exec(versionRes);
+				if (!resVers) throw 'Error while creating new version';
+				
+				let versionNum = +resVers[1];
+				console.log('New version num: ' + versionNum);
+				
+				// Update version value:
+				!CONFIG.publishing && (CONFIG.publishing = {});
+				CONFIG.publishing.version = versionNum;
+				
+				break;
+		}
+	});
 	// Update addon ZIP file
 	grunt.registerMultiTask('zip', 'Update addon zip file to prepare it for webstore deploy', function(){
 		const JSZip = require('jszip');
@@ -304,39 +366,39 @@ module.exports = function(grunt) {
 		
 		new Promise((resolve, reject) => {
 			fs.readFile('build/addon_webstore.zip', (err, data) => {
-			if (err) reject(err);
-		
-		resolve(data);
-	});
-	})
-	.then(data => zip.loadAsync(data))
-		
-		// Update manifest.json & create zip
-	.then(() => {
-			// Update manifest.json
-			return zip.file('manifest.json', JSON.stringify(manifest))
-			// create Zip file
-				.generateAsync({type:"nodebuffer"})
+				if (err) reject(err);
+				
+				resolve(data);
+			});
 		})
-		
-		// Write to disk
-	.then(content => new Promise(resolve => {
-			fs.writeFile("build/addon_webstore_draft.zip", content, resolve);
-	}))
-		
-		// end task
-	.then(err => {
-			if (err) throw err;
-		
-		console.log('file create with success');
-		
-		done();
-	})
-	.catch(err => {
-			console.error(err);
-		
-		done(false);
-	})
+			.then(data => zip.loadAsync(data))
+			
+			// Update manifest.json & create zip
+			.then(() => {
+				// Update manifest.json
+				return zip.file('manifest.json', JSON.stringify(manifest))
+					// create Zip file
+					.generateAsync({type:"nodebuffer"})
+			})
+			
+			// Write to disk
+			.then(content => new Promise(resolve => {
+				fs.writeFile("build/addon_webstore_draft.zip", content, resolve);
+			}))
+			
+			// end task
+			.then(err => {
+				if (err) throw err;
+				
+				console.log('file create with success');
+				
+				done();
+			})
+			.catch(err => {
+				console.error(err);
+				
+				done(false);
+			})
 		
 	});
 	// Use webStore API
@@ -438,14 +500,14 @@ module.exports = function(grunt) {
 		
 		webstore(uploadOptions, 'default')['then'](() => {
 			console.log('Published with success');
-		
-		done();
-	})
-	.catch(() => {
-			console.error('Publishing failed');
-		
-		done(false);
-	});
+			
+			done();
+		})
+			.catch(() => {
+				console.error('Publishing failed');
+				
+				done(false);
+			});
 	});
 	
 	
@@ -456,6 +518,7 @@ module.exports = function(grunt) {
 		'clean:build',
 		'copy:build',
 		'jsonPatch:build',
+		'copy:dependencies',
 	]);
 	
 	grunt.registerTask('push', [
