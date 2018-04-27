@@ -11,11 +11,11 @@ module.exports = function(grunt) {
 	 * grunt build --target=prod
 	 *
 	 * grunt publishAddon --target=prod
-	 * 
+	 *
 	 * grunt build_push --target=prod
-	 * 
+	 *
 	 *//**/
-		
+	
 	// define target and config to run the task with
 	const TARGET = grunt.option('target') || 'dev';
 	
