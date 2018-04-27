@@ -2,7 +2,7 @@
 	"name": "GAS-shell",
 	"version": "0.1.0",
 	"description": "Google Apps Script shell project",
-	"license": "UNLICENSED",
+	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": ""
