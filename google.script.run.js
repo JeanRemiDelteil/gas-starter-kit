@@ -20,19 +20,27 @@ GoogleScriptRun.prototype = {
 //<editor-fold desc="# Internal stubs for google.script.run">
 
 /**
- * @param {function} successHandler
+ * @param {function(serverResponse: *, userObject: *)} successHandler
  * @return {GoogleScriptRun}
  */
 GoogleScriptRun.prototype.withSuccessHandler = function (successHandler) {
-	successHandler();
+	successHandler('serverResponse', this._userObject);
 	return this;
 };
 /**
- * @param {function} failureHandler
+ * @param {function(error: Error, userObject: *)} failureHandler
  * @return {GoogleScriptRun}
  */
 GoogleScriptRun.prototype.withFailureHandler = function (failureHandler) {
-	failureHandler();
+	failureHandler(new Error('errorMessage'), this._userObject);
+	return this;
+};
+/**
+ * @param {*} userObject
+ * @return {GoogleScriptRun}
+ */
+GoogleScriptRun.prototype.withUserObject = function (userObject) {
+	this._userObject = userObject;
 	return this;
 };
 
