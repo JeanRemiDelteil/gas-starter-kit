@@ -12,8 +12,12 @@ It will contain the built target, and must be of the following form: (see below 
 ```json
 {
 	"clasp": {"scriptId": "AppsScript file drive ID"},
-	"script_manifest": {}
-}
+	"script_manifest": {
+ 		"timeZone": "Europe/Paris",
+ 		"exceptionLogging": "STACKDRIVER"
+ 	}
+ }
+
 ```
 * We use the **@google/clasp** package to get/update apps script file in Google Drive.
 Find the setup for clasp on this page: https://www.npmjs.com/package/@google/clasp
@@ -40,11 +44,15 @@ For each target, a valid config file named: "/build/config/targetName_config.jso
 	"clasp": {
 		"scriptId": "$TARGET_SCRIPT_ID$"
 	},
-	"script_manifest": {}
+	"script_manifest": {
+	    "timeZone": "Europe/Paris",
+	    "exceptionLogging": "STACKDRIVER"
+	}
 }
 ```
 NOTE: fill the "script_manifest" key with this format: https://developers.google.com/apps-script/concepts/manifests#manifest_structure
 
+NOTE: adjust the timezone to match yours, best is to copy the original from the script
 
 ## Best practices ###
 
