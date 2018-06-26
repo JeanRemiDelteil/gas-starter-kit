@@ -10,9 +10,11 @@
 GoogleScriptRun = function () {};
 // NEVER DO THAT in normal code, this overwrite the prototype, here we do this of auto-completion only
 GoogleScriptRun.prototype = {
-	// PLACE HERE your function called from Sidebar/Modale to keep the link
+	// PLACE HERE the entryPoint functions (just for listing purpose) 
 	// onInstall: onInstall,
 	onOpen: onOpen,
+	
+	// PLACE HERE functions called from Sidebar/Modal to keep the link and have auto-complete
 	
 };
 
