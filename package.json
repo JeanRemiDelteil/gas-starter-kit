@@ -8,10 +8,10 @@
 		"url": ""
 	},
 	"dependencies": {
-		"@scriptaddicts/gas-error-handler": "^1.1.2"
+		"@scriptaddicts/gas-error-handler": "latest"
 	},
 	"devDependencies": {
-		"gas-lib": "^latest",
+		"gas-lib": "latest",
 		"grunt": "^1.0.1",
 		"grunt-contrib-clean": "^1.0.0",
 		"grunt-contrib-copy": "^1.0.0"
