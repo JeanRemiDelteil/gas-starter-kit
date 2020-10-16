@@ -1,7 +1,8 @@
-{
+module.exports = {
 	"clasp": {"scriptId": "$SCRIPT_ID$"},
 	"script_manifest": {
 		"timeZone": "Europe/Paris",
 		"exceptionLogging": "STACKDRIVER"
-	}
+	},
+	"context": {}
 }

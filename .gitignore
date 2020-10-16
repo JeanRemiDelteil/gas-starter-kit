@@ -2,4 +2,4 @@
 /node_modules/
 
 /build/src/
-/build/config/dev_config.json
+/build/config/dev_config.*

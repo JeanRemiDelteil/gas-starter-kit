@@ -1,4 +1,4 @@
-module.exports = function(grunt) {
+module.exports = function (grunt) {
 	/**
 	 * @typedef {function} grunt.option
 	 * @typedef {function} grunt.initConfig
@@ -25,6 +25,7 @@ module.exports = function(grunt) {
 	 *     scriptId: string
 	 *   },
 	 *   script_manifest: {},
+	 *   context: {}
 	 * }}
 	 */
 	let CONFIG;
@@ -32,7 +33,7 @@ module.exports = function(grunt) {
 	//<editor-fold desc="# Prepare CONFIG object">
 	{
 		try {
-			CONFIG = require(`./build/config/${TARGET}_config.json`);
+			CONFIG = require(`./build/config/${TARGET}_config`);
 		}
 		catch (e) {
 			grunt.fail.fatal(`\x1b[31mERROR: "\x1b[0m\x1b[41m\x1b[30m${TARGET}\x1b[31m\x1b[0m\x1b[31m" is not a valid target build\x1b[0m`);
@@ -40,6 +41,19 @@ module.exports = function(grunt) {
 			// not needed, grunt.fail.fatal already exits
 			return false;
 		}
+		
+		
+		// Stringify non-string key in .context
+		let context = JSON.parse(JSON.stringify(CONFIG.context));
+		
+		for (let key in context) {
+			if (typeof context[key] === 'string') continue;
+			
+			context[key] = JSON.stringify(context[key]);
+		}
+		
+		CONFIG.context = context;
+		
 	}
 	//</editor-fold>
 	
@@ -54,31 +68,34 @@ module.exports = function(grunt) {
 						expand: true,
 						cwd: 'build/src/', // build source folder
 						src: [
-							'**/*' // Wipe everything
-						]
-					}
-				]
-			}
+							'**/*', // Wipe everything
+						],
+					},
+				],
+			},
 		},
-		copy:{
+		copy: {
 			'build': {
-				files: [{
-					expand: true,
-					cwd: 'src/',
-					src: [
-						'**/*.gs',
-						'**/*.js',
-						'**/*.html',
-						'appsscript.json',
-					],
-					dest: 'build/src/',
-					flatten: false, // set flatten to false once we use clasp folder name
-					filter: 'isFile',
-					'rename': (dest, src) => dest + src.replace(/\.gs\.js$/, '.js'),
-				}]
+				files: [
+					{
+						expand: true,
+						cwd: 'src/',
+						src: [
+							'**/*.gs',
+							'**/*.js',
+							'**/*.ts',
+							'**/*.html',
+							'appsscript.json',
+						],
+						dest: 'build/src/',
+						flatten: false,
+						filter: 'isFile',
+						'rename': (dest, src) => dest + src.replace(/\.gs\.js$/, '.js'),
+					},
+				],
 			},
 			'dependencies': {
-				get files(){
+				get files() {
 					if (this._cachedFiles) return this._cachedFiles;
 					
 					// custom task to copy the package dependencies to build output
@@ -89,7 +106,7 @@ module.exports = function(grunt) {
 					this.options.process = this.options.process.bind(this.options);
 					
 					// for every dependency package, build src and dest rules
-					for (let pkgName in dependencies){
+					for (let pkgName in dependencies) {
 						// retrieve installed package version
 						let {version} = require(`./node_modules/${pkgName}/package`);
 						
@@ -105,6 +122,7 @@ module.exports = function(grunt) {
 							src: [
 								'**/*.gs',
 								'**/*.js',
+								'**/*.ts',
 							],
 							dest: `build/src/lib/${pkgName}/`,
 							flatten: false, // set flatten to false once we use clasp folder name
@@ -141,10 +159,10 @@ module.exports = function(grunt) {
  */`;
 						
 						return `${header}\n\n${content}`;
-					}
-				}
+					},
+				},
 				
-			}
+			},
 		},
 		jsonPatch: {
 			'build': {
@@ -165,6 +183,25 @@ module.exports = function(grunt) {
 				],
 			},
 		},
+		preprocess: {
+			'js': {
+				options: {
+					context: CONFIG.context,
+					type: 'js',
+				},
+				files: [
+					{
+						expand: true,
+						cwd: 'build/src/',
+						src: [
+							'**/*.js',
+							'**/*.js.html',
+						],
+						dest: 'build/src/',
+					},
+				],
+			},
+		},
 		clasp: {
 			'push': {
 				runDir: 'build/src',
@@ -181,11 +218,12 @@ module.exports = function(grunt) {
 	// load tasks
 	grunt.loadNpmTasks('grunt-contrib-clean');
 	grunt.loadNpmTasks('grunt-contrib-copy');
+	grunt.loadNpmTasks('grunt-preprocess');
 	
 	/**
 	 * custom task to patch *.json or multiple *.json
 	 */
-	grunt.registerMultiTask('jsonPatch', 'Update properties in *.json file or multiple json files', function(){
+	grunt.registerMultiTask('jsonPatch', 'Update properties in *.json file or multiple json files', function () {
 		
 		// Check if there are files to patch
 		if (!this || !this.data || (!this.files && (!this.data.src || !this.data.dest))) return;
@@ -205,7 +243,7 @@ module.exports = function(grunt) {
 			let config = {};
 			
 			// read config file
-			try { config = grunt.file.readJSON(srcFolder + src) }
+			try { config = grunt.file.readJSON(srcFolder + src); }
 			catch (e) {}
 			
 			// update the provided parameters
@@ -256,11 +294,13 @@ module.exports = function(grunt) {
 		}
 		
 		// Init files object
-		let files = this.data.files || [{
-			src: this.files[0].src[0],
-			dest: this.files[0].dest,
-			data: this.data.data
-		}];
+		let files = this.data.files || [
+			{
+				src: this.files[0].src[0],
+				dest: this.files[0].dest,
+				data: this.data.data,
+			},
+		];
 		
 		// Patch every JSON files
 		files.forEach(({src, dest, data}) => updateJsonFile(src, dest, data));
@@ -269,7 +309,7 @@ module.exports = function(grunt) {
 	/**
 	 * Use clasp
 	 */
-	grunt.registerMultiTask('clasp', 'push content in script, and create a version', function(){
+	grunt.registerMultiTask('clasp', 'push content in script, and create a version', function () {
 		const child_process = require('child_process');
 		
 		/**
@@ -280,16 +320,16 @@ module.exports = function(grunt) {
 		 */
 		let param = this.data;
 		
-		function clasp(cmd){
+		function clasp(cmd) {
 			let res = child_process.execSync(`clasp ${cmd}`, {
-				cwd: __dirname +'/'+ param.runDir
+				cwd: __dirname + '/' + param.runDir,
 			});
 			
 			// Get string res
 			return res.toString();
 		}
 		
-		switch (param.command){
+		switch (param.command) {
 			case 'push':
 				// Push
 				console.log('Pushing files to the script');
@@ -315,7 +355,7 @@ module.exports = function(grunt) {
 				console.log('New version num: ' + versionNum);
 				
 				// Update version value:
-				!CONFIG.publishing && (CONFIG.publishing = {});
+				!CONFIG.publishing && (CONFIG['publishing'] = {});
 				CONFIG.publishing.version = versionNum;
 				
 				break;
@@ -329,6 +369,7 @@ module.exports = function(grunt) {
 	grunt.registerTask('build', [
 		'clean:build',
 		'copy:build',
+		'preprocess:js',
 		'jsonPatch:build',
 		'copy:dependencies',
 	]);
